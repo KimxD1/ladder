@@ -203,10 +203,11 @@
 
   /* ============ 여기서 글자·이모지·색을 바꿀 수 있어요 ============ */
   var TEAMS = [
-    { name: '빨강팀', color: '#ff5f6d' },
-    { name: '노랑팀', color: '#ffc82e' },
-    { name: '파랑팀', color: '#4aa8ff' }
+    { name: '빨강팀', color: '#ff5f6d', dest: 1 },   // → 점자 만들기
+    { name: '노랑팀', color: '#ffc82e', dest: 0 },   // → 유도 블록 만들기
+    { name: '파랑팀', color: '#4aa8ff', dest: 2 }    // → 음성 인식 버튼(녹음)
   ];
+  // dest: 아래 DESTS 목록의 번호(0부터). 사다리 모양은 매번 랜덤이지만 도착지는 항상 이대로 고정돼요.
   var DESTS = [
     { name: '유도 블록 만들기', emoji: '🟨', braille: false },
     { name: '점자 만들기',      emoji: '⠿',  braille: true  },
@@ -285,11 +286,27 @@
       rungs = list;
       var c0 = list.filter(function (r) { return r.a === 0; }).length;
       var c1 = list.length - c0;
-      var identity = endOf(0) === 0 && endOf(1) === 1 && endOf(2) === 2;
+      var fixed = TEAMS.every(function (t, i) { return endOf(i) === t.dest; });
       var allMove = [0, 1, 2].every(function (i) { return pathFor(i).pts.length > 2; });
-      ok = ys.length >= 7 && c0 >= 2 && c1 >= 2 && !identity && allMove;
+      ok = ys.length >= 7 && c0 >= 2 && c1 >= 2 && fixed && allMove;
       tries++;
-    } while (!ok && tries < 300);
+    } while (!ok && tries < 5000);
+    if (!ok) fixRungs();
+  }
+  // 혹시 조건에 맞는 사다리를 못 찾으면, 맨 아래에 가로줄을 더해 도착지를 맞춰요.
+  function fixRungs() {
+    rungs = rungs.filter(function (r) { return r.y < H - 120; });
+    var want = TEAMS.map(function (t) { return t.dest; });
+    var y = H - 100;
+    for (var guard = 0; guard < 6; guard++) {
+      var pos = [0, 1, 2].map(endOf);    // pos[i]: i팀이 지금 도착하는 칸
+      if (pos.every(function (p, i) { return p === want[i]; })) break;
+      // 인접한 두 칸 중 순서가 뒤바뀐 곳을 가로줄로 교환
+      var lane = [0, 1, 2].map(function (c) { return want[pos.indexOf(c)]; });
+      var a = lane[0] > lane[1] ? 0 : 1;
+      rungs.push({ y: y, a: a });
+      y += 28;
+    }
   }
 
   function el(name, attrs) {
