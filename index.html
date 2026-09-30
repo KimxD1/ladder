@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>우리 팀은 어디로 갈까? - 사다리타기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --night-1: #1b2150;
+    --night-2: #2b2f73;
+    --night-3: #3b3f8f;
+    --gold: #f6c453;
+    --gold-soft: #ffe7a3;
+    --paper: #fffdf7;
+    --ink: #262a56;
+    --red: #ff5f6d;
+    --yellow: #ffc82e;
+    --blue: #4aa8ff;
+    --font-title: 'Jua', 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', sans-serif;
+    --font-body: 'Gowun Dodum', 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', sans-serif;
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body { margin: 0; min-height: 100%; }
+
+  body {
+    font-family: var(--font-body);
+    color: var(--paper);
+    background:
+      radial-gradient(circle at 15% 10%, rgba(255,255,255,.10) 0 2px, transparent 3px),
+      radial-gradient(circle at 80% 22%, rgba(255,255,255,.12) 0 2px, transparent 3px),
+      radial-gradient(circle at 60% 6%, rgba(246,196,83,.35) 0 2px, transparent 3px),
+      radial-gradient(circle at 30% 40%, rgba(255,255,255,.08) 0 2px, transparent 3px),
+      radial-gradient(circle at 90% 70%, rgba(255,255,255,.10) 0 2px, transparent 3px),
+      linear-gradient(170deg, var(--night-1) 0%, var(--night-2) 55%, var(--night-3) 100%);
+    background-attachment: fixed;
+    padding: max(16px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom));
+    display: flex;
+    justify-content: center;
+  }
+
+  .app { width: 100%; max-width: 680px; }
+
+  header { text-align: center; margin: 6px 0 18px; }
+  h1 {
+    font-family: var(--font-title);
+    font-weight: 400;
+    font-size: clamp(1.9rem, 6.5vw, 2.7rem);
+    margin: 0;
+    letter-spacing: .02em;
+    color: var(--gold-soft);
+    text-shadow: 0 3px 0 rgba(0,0,0,.25);
+  }
+  header p { margin: 6px 0 0; font-size: clamp(1rem, 3.6vw, 1.2rem); opacity: .9; }
+
+  .row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+  }
+  .row > * { margin: 0 6px; position: relative; z-index: 2; }
+
+  /* 상단: 팀 버튼 */
+  .team-btn {
+    --c: var(--red);
+    font-family: var(--font-title);
+    font-size: clamp(1.15rem, 4.6vw, 1.6rem);
+    color: var(--ink);
+    background: var(--paper);
+    border: 0;
+    border-radius: 22px;
+    padding: 12px 6px 10px;
+    min-height: 92px;
+    cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+    box-shadow: 0 6px 0 var(--c), 0 12px 20px rgba(0,0,0,.28);
+    transition: transform .15s ease, box-shadow .15s ease, opacity .2s ease;
+  }
+  .team-btn .dot {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: var(--c);
+    box-shadow: inset 0 -4px 0 rgba(0,0,0,.15), inset 0 3px 0 rgba(255,255,255,.45);
+  }
+  .team-btn:hover:not(:disabled) { transform: translateY(-3px); }
+  .team-btn:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 2px 0 var(--c), 0 6px 12px rgba(0,0,0,.28); }
+  .team-btn:focus-visible { outline: 4px solid var(--c); outline-offset: 3px; }
+  .ctrl:focus-visible { outline: 4px solid var(--gold); outline-offset: 3px; }
+  .team-btn:disabled { cursor: default; opacity: 1; color: var(--ink); }
+  .team-btn.done .dot::after {
+    content: "✓"; display: block; text-align: center; line-height: 34px;
+    font-family: sans-serif; font-weight: 700; color: #fff; font-size: 20px;
+  }
+  .team-btn.running { transform: translateY(2px); box-shadow: 0 0 0 5px var(--c), 0 12px 20px rgba(0,0,0,.28); }
+
+  /* 사다리 */
+  .ladder-wrap { margin: 6px 0; position: relative; z-index: 1; }
+  #ladder { width: 100%; height: auto; display: block; overflow: visible; }
+
+  /* 하단: 도착지 */
+  .dest {
+    --c: #d5d8f2;
+    --glow: rgba(0,0,0,0);
+    background: linear-gradient(180deg, #ffffff 0%, #f3f1ff 100%);
+    color: var(--ink);
+    border: 6px solid #d5d8f2;
+    border-radius: 22px;
+    padding: 12px 6px;
+    text-align: center;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    box-shadow: 0 8px 16px rgba(0,0,0,.25);
+    transition: border-color .3s ease, box-shadow .3s ease;
+  }
+  .dest .emoji { font-size: clamp(2.2rem, 9vw, 3.2rem); line-height: 1.1; }
+  .dest .emoji.braille { font-family: 'Segoe UI Symbol', 'Apple Symbols', 'Noto Sans Symbols 2', sans-serif; }
+  .dest .label { font-family: var(--font-title); font-size: clamp(.98rem, 3.9vw, 1.3rem); line-height: 1.25; word-break: keep-all; }
+  .dest.hit { border-color: var(--c); box-shadow: 0 6px 22px var(--glow); animation: bounce .8s ease; }
+
+  @keyframes bounce {
+    0% { transform: translateY(0); } 25% { transform: translateY(-14px) scale(1.04); }
+    50% { transform: translateY(0); } 70% { transform: translateY(-6px); } 100% { transform: translateY(0); }
+  }
+
+  @keyframes pop { from { transform: scale(0); } to { transform: scale(1); } }
+  @keyframes bounce {
+    0% { transform: translateY(0); } 25% { transform: translateY(-14px) scale(1.04); }
+    50% { transform: translateY(0); } 70% { transform: translateY(-6px); } 100% { transform: translateY(0); }
+  }
+
+  /* 안내 문구 */
+  #message {
+    text-align: center;
+    font-family: var(--font-title);
+    font-size: clamp(1.2rem, 4.8vw, 1.6rem);
+    min-height: 2.2em;
+    margin: 18px 0 8px;
+    color: var(--gold-soft);
+  }
+
+  .controls { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 4px; }
+  .ctrl {
+    font-family: var(--font-title);
+    font-size: clamp(1rem, 3.8vw, 1.2rem);
+    color: var(--gold-soft);
+    background: rgba(255,255,255,.10);
+    border: 2px solid rgba(255,231,163,.55);
+    border-radius: 999px;
+    padding: 10px 20px;
+    cursor: pointer;
+    transition: background .15s ease, transform .15s ease;
+  }
+  .ctrl:hover:not(:disabled) { background: rgba(255,255,255,.2); }
+  .ctrl:active:not(:disabled) { transform: scale(.96); }
+  .ctrl:disabled { opacity: .4; cursor: default; }
+
+  /* 폭죽 */
+  #confetti { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 50; }
+  .piece {
+    position: absolute; top: -30px;
+    font-size: 26px;
+    animation: fall var(--dur) ease-in forwards;
+  }
+  @keyframes fall {
+    to { transform: translate(var(--dx), 110vh) rotate(var(--rot)); opacity: .9; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dest.hit { animation: none; }
+    .piece { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>우리 팀은 어디로 갈까?</h1>
+    <p>우리 팀 이름을 눌러 보세요!</p>
+  </header>
+
+  <div class="row" id="top"></div>
+
+  <div class="ladder-wrap">
+    <svg id="ladder" viewBox="0 0 600 460" role="img" aria-label="사다리타기 그림"></svg>
+  </div>
+
+  <div class="row" id="bottom"></div>
+
+  <div id="message" aria-live="polite">팀을 골라 눌러 보세요 👆</div>
+
+  <div class="controls">
+    <button class="ctrl" id="btn-reset">처음부터 다시</button>
+  </div>
+</div>
+
+<div id="confetti" aria-hidden="true"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ============ 여기서 글자·이모지·색을 바꿀 수 있어요 ============ */
+  var TEAMS = [
+    { name: '빨강팀', color: '#ff5f6d' },
+    { name: '노랑팀', color: '#ffc82e' },
+    { name: '파랑팀', color: '#4aa8ff' }
+  ];
+  var DESTS = [
+    { name: '유도 블록 만들기', emoji: '🟨', braille: false },
+    { name: '점자 만들기',      emoji: '⠿',  braille: true  },
+    { name: '음성 인식 버튼',   emoji: '🔊', braille: false }
+  ];
+  /* =============================================================== */
+
+  var W = 600, H = 460;
+  var XS = [100, 300, 500];        // 세로줄 위치 (3칸 그리드의 가운데와 맞춤)
+  var EXT = 36;                    // 사다리를 위·아래 박스 뒤로 연장하는 길이
+  var NS = 'http://www.w3.org/2000/svg';
+
+  var svg = document.getElementById('ladder');
+  var topEl = document.getElementById('top');
+  var bottomEl = document.getElementById('bottom');
+  var msgEl = document.getElementById('message');
+  var btnReset = document.getElementById('btn-reset');
+  var confettiEl = document.getElementById('confetti');
+
+  var rungs = [];
+  var done = [false, false, false];
+  var busy = false;
+
+  /* ---------- 화면 구성 ---------- */
+  function buildTop() {
+    topEl.innerHTML = '';
+    TEAMS.forEach(function (t, i) {
+      var b = document.createElement('button');
+      b.className = 'team-btn';
+      b.style.setProperty('--c', t.color);
+      b.innerHTML = '<span class="dot"></span><span>' + t.name + '</span>';
+      b.addEventListener('click', function () { playOne(i); });
+      topEl.appendChild(b);
+    });
+  }
+  function buildBottom() {
+    bottomEl.innerHTML = '';
+    DESTS.forEach(function (d) {
+      var el = document.createElement('div');
+      el.className = 'dest';
+      el.innerHTML =
+        '<div class="emoji' + (d.braille ? ' braille' : '') + '">' + d.emoji + '</div>' +
+        '<div class="label">' + d.name + '</div>';
+      bottomEl.appendChild(el);
+    });
+  }
+
+  /* ---------- 사다리 만들기 ---------- */
+  function endOf(start) {
+    var cur = start;
+    rungs.forEach(function (r) {
+      if (r.a === cur) cur = cur + 1;
+      else if (r.a + 1 === cur) cur = cur - 1;
+    });
+    return cur;
+  }
+  function makeRungs() {
+    var list, ok, tries = 0;
+    do {
+      var n = 7 + Math.floor(Math.random() * 6);      // 가로줄 7~12개 (매번 달라짐)
+      var ys = [], guard = 0;
+      while (ys.length < n && guard < 500) {
+        guard++;
+        var y = 44 + Math.random() * (H - 88);
+        var far = ys.every(function (v) { return Math.abs(v - y) >= 26; });
+        if (far) ys.push(y);
+      }
+      ys.sort(function (p, q) { return p - q; });
+      list = [];
+      var prev = Math.random() < 0.5 ? 0 : 1;
+      ys.forEach(function (y, idx) {
+        var a = idx === 0 ? prev : (Math.random() < 0.6 ? 1 - prev : prev);
+        list.push({ y: y, a: a });
+        prev = a;
+      });
+      rungs = list;
+      var c0 = list.filter(function (r) { return r.a === 0; }).length;
+      var c1 = list.length - c0;
+      var identity = endOf(0) === 0 && endOf(1) === 1 && endOf(2) === 2;
+      var allMove = [0, 1, 2].every(function (i) { return pathFor(i).pts.length > 2; });
+      ok = ys.length >= 7 && c0 >= 2 && c1 >= 2 && !identity && allMove;
+      tries++;
+    } while (!ok && tries < 300);
+  }
+
+  function el(name, attrs) {
+    var n = document.createElementNS(NS, name);
+    for (var k in attrs) n.setAttribute(k, attrs[k]);
+    return n;
+  }
+
+  function drawLadder() {
+    svg.innerHTML = '';
+    var base = el('g', { id: 'base' });
+    // 세로줄
+    XS.forEach(function (x) {
+      base.appendChild(el('line', { x1: x, y1: -EXT, x2: x, y2: H + EXT, stroke: '#a9b0f0', 'stroke-width': 12, 'stroke-linecap': 'round', opacity: 0.95 }));
+    });
+    // 가로줄
+    rungs.forEach(function (r) {
+      base.appendChild(el('line', { x1: XS[r.a], y1: r.y, x2: XS[r.a + 1], y2: r.y, stroke: '#a9b0f0', 'stroke-width': 12, 'stroke-linecap': 'round', opacity: 0.95 }));
+    });
+    svg.appendChild(base);
+    svg.appendChild(el('g', { id: 'traces' }));
+  }
+
+  /* ---------- 길 계산 ---------- */
+  function pathFor(start) {
+    var pts = [[XS[start], -EXT]];
+    var cur = start;
+    var sorted = rungs.slice().sort(function (p, q) { return p.y - q.y; });
+    sorted.forEach(function (r) {
+      var next = null;
+      if (r.a === cur) next = cur + 1;
+      else if (r.a + 1 === cur) next = cur - 1;
+      if (next !== null) {
+        pts.push([XS[cur], r.y]);
+        pts.push([XS[next], r.y]);
+        cur = next;
+      }
+    });
+    pts.push([XS[cur], H + EXT]);
+    return { pts: pts, end: cur };
+  }
+
+  /* ---------- 애니메이션 ---------- */
+  function animate(teamIdx) {
+    return new Promise(function (resolve) {
+      var team = TEAMS[teamIdx];
+      var p = pathFor(teamIdx);
+      var pts = p.pts;
+      var segs = [], total = 0;
+      for (var i = 1; i < pts.length; i++) {
+        var len = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+        segs.push(len); total += len;
+      }
+      var traces = svg.querySelector('#traces');
+      var line = el('polyline', { fill: 'none', stroke: team.color, 'stroke-width': 12, 'stroke-linecap': 'butt', 'stroke-linejoin': 'miter' });
+      var token = el('g', {});
+      token.appendChild(el('circle', { r: 20, fill: team.color, stroke: '#fff', 'stroke-width': 5 }));
+      token.appendChild(el('circle', { r: 6, cx: -6, cy: -6, fill: '#fff', opacity: 0.6 }));
+      traces.appendChild(line); traces.appendChild(token);
+
+      var speed = 560;   // 1초에 움직이는 거리 (숫자를 키우면 빨라져요)
+      var t0 = null;
+      function frame(ts) {
+        if (t0 === null) t0 = ts;
+        var dist = Math.min(total, (ts - t0) / 1000 * speed);
+        var acc = 0, drawn = [pts[0].join(',')], head = pts[0];
+        for (var s = 0; s < segs.length; s++) {
+          if (acc + segs[s] <= dist) {
+            acc += segs[s];
+            drawn.push(pts[s + 1].join(','));
+            head = pts[s + 1];
+          } else {
+            var f = (dist - acc) / segs[s];
+            var x = pts[s][0] + (pts[s + 1][0] - pts[s][0]) * f;
+            var y = pts[s][1] + (pts[s + 1][1] - pts[s][1]) * f;
+            drawn.push(x + ',' + y);
+            head = [x, y];
+            break;
+          }
+        }
+        var str = drawn.join(' ');
+          line.setAttribute('points', str);
+        token.setAttribute('transform', 'translate(' + head[0] + ',' + head[1] + ')');
+        if (dist < total) requestAnimationFrame(frame);
+        else {
+          token.parentNode.removeChild(token);
+          resolve(p.end);
+        }
+      }
+      requestAnimationFrame(frame);
+    });
+  }
+
+  /* ---------- 결과 표시 ---------- */
+  function celebrate() {
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var icons = ['⭐', '🎉', '✨', '🌟', '🎈'];
+    for (var i = 0; i < 26; i++) {
+      var s = document.createElement('span');
+      s.className = 'piece';
+      s.textContent = icons[Math.floor(Math.random() * icons.length)];
+      s.style.left = (Math.random() * 100) + 'vw';
+      s.style.setProperty('--dur', (1.6 + Math.random() * 1.4) + 's');
+      s.style.setProperty('--dx', (Math.random() * 160 - 80) + 'px');
+      s.style.setProperty('--rot', (Math.random() * 720 - 360) + 'deg');
+      s.style.fontSize = (18 + Math.random() * 20) + 'px';
+      confettiEl.appendChild(s);
+      (function (n) { setTimeout(function () { if (n.parentNode) n.parentNode.removeChild(n); }, 3200); })(s);
+    }
+  }
+
+  function hexToRgba(hex, a) {
+    var n = parseInt(hex.slice(1), 16);
+    return 'rgba(' + (n >> 16) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')';
+  }
+
+  function showResult(teamIdx, destIdx) {
+    var team = TEAMS[teamIdx];
+    var dest = DESTS[destIdx];
+    var card = bottomEl.children[destIdx];
+    card.style.setProperty('--c', team.color);
+    card.style.setProperty('--glow', hexToRgba(team.color, 0.4));
+    card.classList.remove('hit'); void card.offsetWidth; card.classList.add('hit');
+    msgEl.textContent = '🎉 ' + team.name + '은 ' + dest.name + '!';
+    celebrate();
+  }
+
+  /* ---------- 버튼 동작 ---------- */
+  function setButtons() {
+    Array.prototype.forEach.call(topEl.children, function (b, i) {
+      b.disabled = busy || done[i];
+      b.classList.toggle('done', done[i]);
+    });
+    btnReset.disabled = busy;
+  }
+
+  function playOne(i) {
+    if (busy || done[i]) return Promise.resolve();
+    busy = true; setButtons();
+    topEl.children[i].classList.add('running');
+    msgEl.textContent = TEAMS[i].name + ' 출발! 🚀';
+    return animate(i).then(function (end) {
+      done[i] = true; busy = false;
+      topEl.children[i].classList.remove('running');
+      setButtons();
+      showResult(i, end);
+    });
+  }
+
+  function reset() {
+    if (busy) return;
+    done = [false, false, false];
+    makeRungs();
+    drawLadder();
+    buildBottom();
+    msgEl.textContent = '팀을 골라 눌러 보세요 👆';
+    setButtons();
+  }
+
+  btnReset.addEventListener('click', reset);
+
+  /* ---------- 시작 ---------- */
+  buildTop();
+  buildBottom();
+  makeRungs();
+  drawLadder();
+  setButtons();
+})();
+</script>
+</body>
+</html>
