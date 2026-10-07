@@ -68,8 +68,8 @@
   .app.many .team-btn .dot { width: 26px; height: 26px; }
   .app.many .team-btn.done .dot::after { line-height: 26px; font-size: 16px; }
   .app.many .dest { border-width: 4px; border-radius: 16px; padding: 10px 2px; }
-  .app.many .dest .emoji { font-size: clamp(1.6rem, 6.5vw, 2.4rem); }
-  .app.many .dest .label { font-size: clamp(.78rem, 3vw, 1.05rem); }
+  .app.many .dest { min-height: 72px; }
+  .app.many .dest .label { font-size: clamp(.8rem, 3.2vw, 1.15rem); }
 
   /* 상단: 팀 버튼 */
   .team-btn {
@@ -117,13 +117,12 @@
     border-radius: 22px;
     padding: 12px 6px;
     text-align: center;
-    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    min-height: 88px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
     box-shadow: 0 8px 16px rgba(0,0,0,.25);
     transition: border-color .3s ease, box-shadow .3s ease;
   }
-  .dest .emoji { font-size: clamp(2.2rem, 9vw, 3.2rem); line-height: 1.1; }
-  .dest .emoji.braille { font-family: 'Segoe UI Symbol', 'Apple Symbols', 'Noto Sans Symbols 2', sans-serif; }
-  .dest .label { font-family: var(--font-title); font-size: clamp(.98rem, 3.9vw, 1.3rem); line-height: 1.25; word-break: keep-all; }
+  .dest .label { font-family: var(--font-title); font-size: clamp(1.05rem, 4.2vw, 1.45rem); line-height: 1.25; word-break: keep-all; }
   .dest.hit { border-color: var(--c); box-shadow: 0 6px 22px var(--glow); animation: bounce .8s ease; }
 
   @keyframes bounce {
@@ -204,9 +203,12 @@
   .panel .hint { font-size: .85rem; opacity: .7; margin: 4px 0 0; }
   .cfg-row { display: grid; gap: 6px; align-items: center; margin-bottom: 8px; }
   .cfg-row.cfg-team { grid-template-columns: 44px minmax(0, 1fr) minmax(0, 1fr); }
-  .cfg-row.cfg-dest { grid-template-columns: 64px minmax(0, 1fr); }
+  .cfg-row.cfg-dest { grid-template-columns: 2.2em minmax(0, 1fr); }
+  .cfg-row.cfg-dest .num { font-family: var(--font-title); text-align: center; opacity: .7; }
+  .panel .check { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; cursor: pointer; }
+  .panel .check input { width: 20px; height: 20px; margin: 0; accent-color: var(--night-3); }
+  .panel select:disabled { opacity: .45; }
   .cfg-row input[type=color] { width: 44px; height: 40px; padding: 2px; border: 2px solid #d5d8f2; border-radius: 10px; background: #fff; }
-  .cfg-row .emoji-in { text-align: center; }
   .panel-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; margin-top: 18px; }
   .pbtn {
     font-family: var(--font-title); font-size: 1rem;
@@ -251,8 +253,6 @@
 <div class="modal" id="login-modal" hidden role="dialog" aria-modal="true" aria-labelledby="login-title">
   <form class="panel" id="login-form" autocomplete="off">
     <h2 id="login-title">관리자 로그인</h2>
-    <label for="login-id">아이디</label>
-    <input type="text" id="login-id" autocapitalize="off" spellcheck="false">
     <label for="login-pw">비밀번호</label>
     <input type="password" id="login-pw">
     <p class="err" id="login-err" aria-live="polite"></p>
@@ -268,11 +268,9 @@
   <form class="panel" id="admin-form" autocomplete="off">
     <h2 id="admin-title">사다리 설정</h2>
 
-    <h3>제목 글자</h3>
+    <h3>제목</h3>
     <label for="cfg-title">큰 제목</label>
     <input type="text" id="cfg-title">
-    <label for="cfg-subtitle">작은 안내 글</label>
-    <input type="text" id="cfg-subtitle">
 
     <h3>인원(팀)과 도착지 수</h3>
     <label for="cfg-count">팀 수 = 도착지 수</label>
@@ -280,15 +278,16 @@
     <p class="hint">사다리는 위·아래 칸 수가 같아야 해서, 팀 수와 도착지 수가 함께 바뀌어요.</p>
 
     <h3>위쪽: 팀 (색 · 이름 · 도착할 곳)</h3>
+    <label class="check"><input type="checkbox" id="cfg-random"> 도착지를 랜덤으로 추첨하기</label>
+    <p class="hint" id="cfg-random-hint"></p>
     <div id="cfg-teams"></div>
 
-    <h3>아래쪽: 도착지 (그림 · 이름)</h3>
+    <h3>아래쪽: 도착지 이름</h3>
     <div id="cfg-dests"></div>
 
     <p class="err" id="admin-err" aria-live="polite"></p>
     <div class="panel-actions">
       <button type="button" class="pbtn left" id="cfg-default">기본값으로</button>
-      <button type="button" class="pbtn" id="cfg-logout">로그아웃</button>
       <button type="button" class="pbtn" data-close>닫기</button>
       <button type="submit" class="pbtn primary">저장</button>
     </div>
@@ -302,22 +301,21 @@
   'use strict';
 
   /* ============ 기본 설정 (관리자 화면에서 바꿀 수 있어요) ============ */
-  var ADMIN_ID = 'admin';
   var ADMIN_PW = '1234';
   var MIN_N = 2, MAX_N = 6;
 
   var DEFAULT_CONFIG = {
     title: '우리 팀은 어디로 갈까?',
-    subtitle: '우리 팀 이름을 눌러 보세요!',
+    random: false,               // true면 도착지를 매번 랜덤 추첨, false면 아래 dest대로 고정
     teams: [
       { name: '빨강팀', color: '#ff5f6d', dest: 1 },   // → 점자 만들기
       { name: '노랑팀', color: '#ffc82e', dest: 0 },   // → 유도 블록 만들기
       { name: '파랑팀', color: '#4aa8ff', dest: 2 }    // → 음성 인식 버튼(녹음)
     ],
     dests: [
-      { name: '유도 블록 만들기', emoji: '🟨' },
-      { name: '점자 만들기',      emoji: '⠿'  },
-      { name: '음성 인식 버튼',   emoji: '🔊' }
+      { name: '유도 블록 만들기' },
+      { name: '점자 만들기' },
+      { name: '음성 인식 버튼' }
     ]
   };
   // 팀·도착지를 늘릴 때 새로 생기는 칸의 기본값
@@ -329,7 +327,6 @@
     { name: '하늘팀', color: '#5fd3f3' },
     { name: '갈색팀', color: '#b5835a' }
   ];
-  var EXTRA_EMOJIS = ['⭐', '🎨', '📚', '🎵', '🧩', '🌱'];
   var STORE_KEY = 'ladder-config-v1';
   /* ===================================================================== */
 
@@ -355,7 +352,7 @@
   function clone(o) { return JSON.parse(JSON.stringify(o)); }
 
   function isValid(c) {
-    if (!c || typeof c.title !== 'string' || typeof c.subtitle !== 'string') return false;
+    if (!c || typeof c.title !== 'string') return false;
     if (!Array.isArray(c.teams) || !Array.isArray(c.dests)) return false;
     var n = c.teams.length;
     if (n < MIN_N || n > MAX_N || c.dests.length !== n) return false;
@@ -365,13 +362,17 @@
         t.dest === (t.dest | 0) && t.dest >= 0 && t.dest < n && !seen[t.dest];
       seen[t.dest] = true;
       return ok;
-    }) && c.dests.every(function (d) { return typeof d.name === 'string' && typeof d.emoji === 'string'; });
+    }) && c.dests.every(function (d) { return d && typeof d.name === 'string'; });
   }
 
   function loadConfig() {
     try {
       var c = JSON.parse(localStorage.getItem(STORE_KEY));
-      if (isValid(c)) return c;
+      if (isValid(c)) {
+        c.random = c.random === true;
+        c.dests = c.dests.map(function (d) { return { name: d.name }; });
+        return c;
+      }
     } catch (e) {}
     return clone(DEFAULT_CONFIG);
   }
@@ -390,7 +391,6 @@
     appEl.style.setProperty('--n', N);
     appEl.classList.toggle('many', N >= 5);
     document.getElementById('title').textContent = c.title;
-    document.getElementById('subtitle').textContent = c.subtitle;
     document.title = c.title + ' - 사다리타기';
   }
 
@@ -408,19 +408,15 @@
       topEl.appendChild(b);
     });
   }
-  function isBraille(s) { return /[⠀-⣿]/.test(s); }
   function buildBottom() {
     bottomEl.innerHTML = '';
     config.dests.forEach(function (d) {
       var el = document.createElement('div');
       el.className = 'dest';
-      var em = document.createElement('div');
-      em.className = 'emoji' + (isBraille(d.emoji) ? ' braille' : '');
-      em.textContent = d.emoji;
       var label = document.createElement('div');
       label.className = 'label';
       label.textContent = d.name;
-      el.appendChild(em); el.appendChild(label);
+      el.appendChild(label);
       bottomEl.appendChild(el);
     });
   }
@@ -438,7 +434,7 @@
   function randInt(n) { return Math.floor(Math.random() * n); }
 
   // 무작위 가로줄 뒤에, 도착지를 맞추는 가로줄을 이어 붙인 순서를 만들어요.
-  function makeSequence() {
+  function makeSequence(want) {
     var seq = [];
     var count = N + 3 + randInt(N + 2);
     while (seq.length < count) {
@@ -450,7 +446,6 @@
     var end = endsOf(seq);
     var at = [];
     end.forEach(function (lane, team) { at[lane] = team; });
-    var want = config.teams.map(function (t) { return t.dest; });
     var fixes = [];
     for (var pass = 0; pass < N; pass++) {
       for (var a2 = 0; a2 < N - 1; a2++) {
@@ -486,11 +481,22 @@
     });
   }
 
+  // 랜덤 추첨이면 매번 도착지 순서를 새로 섞어요.
+  function targets() {
+    var want = config.teams.map(function (t, i) { return config.random ? i : t.dest; });
+    if (config.random) {
+      for (var i = want.length - 1; i > 0; i--) {
+        var j = randInt(i + 1), t = want[i]; want[i] = want[j]; want[j] = t;
+      }
+    }
+    return want;
+  }
+
   function makeRungs() {
-    var want = config.teams.map(function (t) { return t.dest; });
+    var want = targets();
     var best = null;
     for (var tries = 0; tries < 200; tries++) {
-      var seq = makeSequence();
+      var seq = makeSequence(want);
       var end = endsOf(seq);
       var ok = want.every(function (d, i) { return end[i] === d; });
       if (!ok) continue;
@@ -690,17 +696,11 @@
   var loginErr = document.getElementById('login-err');
   var adminErr = document.getElementById('admin-err');
   var cfgTitle = document.getElementById('cfg-title');
-  var cfgSubtitle = document.getElementById('cfg-subtitle');
+  var cfgRandom = document.getElementById('cfg-random');
+  var cfgRandomHint = document.getElementById('cfg-random-hint');
   var cfgCount = document.getElementById('cfg-count');
   var cfgTeams = document.getElementById('cfg-teams');
   var cfgDests = document.getElementById('cfg-dests');
-  var LOGIN_KEY = 'ladder-admin';
-  var loggedIn = false;      // 로그인은 브라우저 탭을 닫을 때까지 유지돼요
-  try { loggedIn = sessionStorage.getItem(LOGIN_KEY) === '1'; } catch (e) {}
-  function setLoggedIn(v) {
-    loggedIn = v;
-    try { if (v) sessionStorage.setItem(LOGIN_KEY, '1'); else sessionStorage.removeItem(LOGIN_KEY); } catch (e) {}
-  }
   var draft = null;          // 관리자 화면에서 고치는 중인 설정
   var lastFocus = null;
 
@@ -722,22 +722,19 @@
 
   btnAdmin.addEventListener('click', function () {
     if (busy) return;
-    if (loggedIn) return openAdmin();
     loginForm.reset();
     loginErr.textContent = '';
-    openModal(loginModal, document.getElementById('login-id'));
+    openModal(loginModal, document.getElementById('login-pw'));
   });
 
   loginForm.addEventListener('submit', function (e) {
     e.preventDefault();
-    var id = document.getElementById('login-id').value.trim();
     var pw = document.getElementById('login-pw').value;
-    if (id === ADMIN_ID && pw === ADMIN_PW) {
-      setLoggedIn(true);
+    if (pw === ADMIN_PW) {
       loginModal.hidden = true;
       openAdmin();
     } else {
-      loginErr.textContent = '아이디 또는 비밀번호가 맞지 않아요.';
+      loginErr.textContent = '비밀번호가 맞지 않아요.';
       document.getElementById('login-pw').value = '';
       document.getElementById('login-pw').focus();
     }
@@ -759,14 +756,13 @@
   // 입력칸의 값을 draft에 모아요.
   function readAdmin() {
     draft.title = cfgTitle.value;
-    draft.subtitle = cfgSubtitle.value;
+    draft.random = cfgRandom.checked;
     Array.prototype.forEach.call(cfgTeams.children, function (row, i) {
       draft.teams[i].color = row.querySelector('input[type=color]').value;
       draft.teams[i].name = row.querySelector('input[type=text]').value;
       draft.teams[i].dest = parseInt(row.querySelector('select').value, 10);
     });
     Array.prototype.forEach.call(cfgDests.children, function (row, i) {
-      draft.dests[i].emoji = row.querySelector('.emoji-in').value;
       draft.dests[i].name = row.querySelector('.name-in').value;
     });
   }
@@ -777,7 +773,7 @@
 
   function renderAdmin() {
     cfgTitle.value = draft.title;
-    cfgSubtitle.value = draft.subtitle;
+    cfgRandom.checked = !!draft.random;
     cfgCount.value = draft.teams.length;
 
     cfgTeams.innerHTML = '';
@@ -806,9 +802,8 @@
     draft.dests.forEach(function (d, i) {
       var row = document.createElement('div');
       row.className = 'cfg-row cfg-dest';
-      var emoji = document.createElement('input');
-      emoji.type = 'text'; emoji.className = 'emoji-in'; emoji.value = d.emoji; emoji.maxLength = 8;
-      emoji.setAttribute('aria-label', (i + 1) + '번 도착지 그림(이모지)');
+      var num = document.createElement('span');
+      num.className = 'num'; num.textContent = (i + 1) + '번';
       var name = document.createElement('input');
       name.type = 'text'; name.className = 'name-in'; name.value = d.name; name.maxLength = 30;
       name.setAttribute('aria-label', (i + 1) + '번 도착지 이름');
@@ -819,9 +814,10 @@
           s.options[i].textContent = '→ ' + destLabel(i);
         });
       });
-      row.appendChild(emoji); row.appendChild(name);
+      row.appendChild(num); row.appendChild(name);
       cfgDests.appendChild(row);
     });
+    updateRandom();
   }
 
   cfgCount.addEventListener('change', function () {
@@ -831,7 +827,7 @@
       var k = draft.teams.length;
       var extra = EXTRA_TEAMS[(k - 3 + EXTRA_TEAMS.length) % EXTRA_TEAMS.length];
       draft.teams.push({ name: extra.name, color: extra.color, dest: -1 });
-      draft.dests.push({ name: '도착지 ' + (k + 1), emoji: EXTRA_EMOJIS[k % EXTRA_EMOJIS.length] });
+      draft.dests.push({ name: '도착지 ' + (k + 1) });
     }
     draft.teams.length = n;
     draft.dests.length = n;
@@ -853,16 +849,15 @@
     e.preventDefault();
     readAdmin();
     draft.title = draft.title.trim();
-    draft.subtitle = draft.subtitle.trim();
     draft.teams.forEach(function (t) { t.name = t.name.trim(); });
-    draft.dests.forEach(function (d) { d.name = d.name.trim(); d.emoji = d.emoji.trim(); });
+    draft.dests.forEach(function (d) { d.name = d.name.trim(); });
 
     if (!draft.title) return showErr('큰 제목을 입력해 주세요.');
     if (draft.teams.some(function (t) { return !t.name; })) return showErr('팀 이름을 모두 입력해 주세요.');
     if (draft.dests.some(function (d) { return !d.name; })) return showErr('도착지 이름을 모두 입력해 주세요.');
     var used = {}, dup = null;
     draft.teams.forEach(function (t) { if (used[t.dest]) dup = t.dest; used[t.dest] = true; });
-    if (dup !== null) return showErr('두 팀이 같은 도착지(' + destLabel(dup) + ')로 가요. 팀마다 다른 도착지를 골라 주세요.');
+    if (!draft.random && dup !== null) return showErr('두 팀이 같은 도착지(' + destLabel(dup) + ')로 가요. 팀마다 다른 도착지를 골라 주세요.');
 
     var saved = saveConfig(draft);
     rebuildAll(clone(draft));
@@ -881,11 +876,16 @@
     renderAdmin();
   });
 
-  document.getElementById('cfg-logout').addEventListener('click', function () {
-    setLoggedIn(false);
-    closeModal(adminModal);
-    msgEl.textContent = '로그아웃했어요.';
-  });
+  // 랜덤 추첨을 켜면 팀별 도착지 고르기는 쓰지 않아요.
+  function updateRandom() {
+    Array.prototype.forEach.call(cfgTeams.querySelectorAll('select'), function (s) {
+      s.disabled = cfgRandom.checked;
+    });
+    cfgRandomHint.textContent = cfgRandom.checked
+      ? '켜짐: "처음부터 다시"를 누를 때마다 도착지가 랜덤으로 정해져요.'
+      : '꺼짐: 아래에서 고른 도착지로 항상 도착해요.';
+  }
+  cfgRandom.addEventListener('change', updateRandom);
 
   /* ---------- 시작 ---------- */
   rebuildAll(loadConfig());
